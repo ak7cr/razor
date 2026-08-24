@@ -1,9 +1,17 @@
 import { formatInr } from '../catalog/serialize.js';
 import type { BuyerSession } from './session.js';
 
-const MAX_ITEMS = 3;
-/** Floor for cosine similarity — avoid buying random items on a nonsense query. */
-const MIN_SIMILARITY = 0.02;
+const MAX_ITEMS = 2;
+/**
+ * Similarity floors for the local subword-embedding model.
+ * Empirically valid product queries score ≥ ~0.43, nonsense/synonym-only
+ * queries ~0.25. We keep a candidate only if it is at least MIN_SIMILARITY AND
+ * within 82% of the top match — true multi-item missions ("mouse + desk mat")
+ * are kept, while loosely-related items are dropped, and weak queries fail
+ * honestly.
+ */
+const MIN_SIMILARITY = 0.3;
+const TOP_RELATIVE_CUTOFF = 0.82;
 
 /**
  * runLocalBuyer — the offline fallback planner.
@@ -23,19 +31,21 @@ export async function runLocalBuyer(session: BuyerSession, mission: string): Pro
   }
 
   const ranked = session.catalog.searchScored(mission);
-  if (ranked.length === 0 || ranked[0]!.score < MIN_SIMILARITY) {
+  const top = ranked[0];
+  if (!top || top.score < MIN_SIMILARITY) {
     session.emitThinking('[offline planner] No products matched the mission semantically.');
     return;
   }
+  const cutoff = Math.max(MIN_SIMILARITY, top.score * TOP_RELATIVE_CUTOFF);
+  const candidates = ranked.filter((s) => s.score >= cutoff);
   session.emitThinking(
-    `[offline planner] Top semantic match: ${ranked[0]!.product.name} (similarity ${ranked[0]!.score.toFixed(3)}).`,
+    `[offline planner] Top semantic match: ${top.product.name} (similarity ${top.score.toFixed(3)}); keeping ${candidates.length} candidate(s) above the cutoff.`,
   );
 
   const chosen: string[] = [];
-  for (const { product, score } of ranked) {
+  for (const { product, score } of candidates) {
     if (chosen.length >= MAX_ITEMS) break;
     if (product.stock <= 0 || chosen.includes(product.id)) continue;
-    if (score < MIN_SIMILARITY) continue;
     if (Number.isFinite(budget) && session.cart.totalPaise + product.pricePaise > budget * 100) {
       session.emitThinking(`[offline planner] Skipping ${product.name} (${formatInr(product.pricePaise)}) — over budget.`);
       continue;

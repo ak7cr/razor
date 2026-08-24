@@ -30,10 +30,10 @@ function ngrams(text: string, n = 3): string[] {
 
 function normalize(v: Float64Array): Float64Array {
   let norm = 0;
-  for (let i = 0; i < v.length; i++) norm += v[i] * v[i];
+  for (let i = 0; i < v.length; i++) norm += v[i]! * v[i]!;
   norm = Math.sqrt(norm);
   if (norm < 1e-9) return v;
-  for (let i = 0; i < v.length; i++) v[i] /= norm;
+  for (let i = 0; i < v.length; i++) v[i] = v[i]! / norm;
   return v;
 }
 
@@ -77,14 +77,14 @@ export class LocalRetriever {
     for (const g of ngrams(text)) {
       const idx = hashMod(g, DIM);
       const sign = hashMod(g + '\u0001', 2) === 0 ? 1 : -1; // signed hashing
-      v[idx] += sign;
+      v[idx] = (v[idx] ?? 0) + sign;
     }
     return normalize(v);
   }
 
   cosine(a: Float64Array, b: Float64Array): number {
     let dot = 0;
-    for (let i = 0; i < a.length; i++) dot += a[i] * b[i];
+    for (let i = 0; i < a.length; i++) dot += (a[i] ?? 0) * (b[i] ?? 0);
     return dot;
   }
 

@@ -42,11 +42,12 @@ gated. Show the audit trail and one failure handled gracefully.* → ✅ built i
 | Area | What it does |
 |------|--------------|
 | 🏬 Agent-readable catalog | `GET /api/catalog/agent` (structured), `llms.txt`, `agent.json` manifest, JSON-LD product pages |
-| 🤖 AI buyer agent | Tool-calling LLM planner (OpenAI-compatible) **or** deterministic heuristic planner — works with **zero API keys** |
+| 🤖 AI buyer agent | Tool-calling LLM planner (OpenAI-compatible) **or** local **ML semantic model** (subword-embedding retrieval — zero API keys, offline, handles typos/inflections) |
 | 🛡 Money guards | Order total cap (₹25,000), per-line qty cap (5), line-item cap, positive amounts, price/stock snapshot re-validation at payment time |
 | 🚦 Human gate | The agent can only *propose*; every charge needs human **Approve / Deny**, with a **deny → agent adjusts → re-propose** loop |
 | 🧾 Audit trail | Append-only JSONL per session (`data/audit/`), downloadable; each entry carries reasoning + guard checks + amounts |
 | 💳 Payments | **Mock provider** (offline demo, seeded to fail once for the recovery demo) or **real Razorpay test-mode API** (Orders + Payment Links) |
+| 🧾 Receipt | Post-purchase receipt "emailed" via a mock provider — audited (`RECEIPT_EMAILED`) and rendered in the UI; a real SMTP adapter drops in behind the same interface |
 | 🖥 Demo UI | Live storefront + agent console (SSE stream) + gated checkout + audit panel |
 | 🔁 Resilient | One failed payment → automatic retry with fallback method, surfaced honestly |
 
@@ -59,7 +60,7 @@ npm install
 npm start          # → http://localhost:4173
 ```
 
-Works out of the box with **no API keys** (heuristic buyer + mock payments).
+Works out of the box with **no API keys** (local ML semantic buyer + mock payments + mock receipts).
 
 ### Turn on the LLM buyer (recommended for the pitch)
 
@@ -157,10 +158,12 @@ decisions. Short version:
 ```
 src/
 ├── catalog/        agent-readable catalog (products, service, serializers)
-├── agent/          LLM + heuristic planners, tools, session state machine
+├── ml/             local subword-embedding retriever (offline semantic search)
+├── agent/          LLM + local-ML planners, tools, session state machine
 ├── guards/         money guards (bounded / gated / re-validated)
 ├── audit/          append-only audit trail (JSONL)
 ├── payments/       mock + Razorpay test-mode providers
+├── notify/         mock receipt/notification provider
 ├── server/         Express app, SSE, session manager, public/ (UI)
 └── index.ts        entry point
 ```
@@ -169,9 +172,11 @@ src/
 
 ## 🔒 Honest limitations
 
-- **Heuristic planner** (no LLM key) is intentionally simple — it's a reliable
-  offline fallback and a nice "where we chose NOT to use AI" example, but the
-  **LLM planner** is the real agent. Set `LLM_API_KEY` for the full experience.
+- **Offline planner** (no LLM key) uses a **local subword-embedding model** trained
+  on the catalog — real vector semantics (typos, inflections, compound terms)
+  with zero network or keys, and it's the automatic fallback when the cloud LLM
+  is down or rate-limited. The **LLM planner** is the real agent; set
+  `LLM_API_KEY` for it.
 - **Mock payments** simulate latency + failure; real Razorpay test mode creates
   real Orders/Payment Links (payment completion would come via webhooks in
   production).

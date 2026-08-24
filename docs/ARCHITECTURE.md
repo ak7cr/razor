@@ -37,7 +37,8 @@ flowchart LR
 
     subgraph Agent["AI Buyer (the buyer)"]
         P1["LLM planner (tool-calling)"]
-        P2["Heuristic planner (offline fallback)"]
+        P2["Local ML planner (subword-embedding)"]
+        ML["LocalRetriever (src/ml/embedding.ts)"]
         TOOLS["Agent tool surface (tools.ts)"]
     end
 
@@ -47,15 +48,18 @@ flowchart LR
         GATE["Human gate (approve/deny)"]
         AUDIT["AuditTrail (explainable)"]
         PAY["PaymentProvider (mock | Razorpay)"]
+        NOTIFY["NotificationProvider (mock receipt)"]
     end
 
     CAT --> SER1 & SER2 & SER3 & SER4
     SER1 & SER2 & SER3 --> P1 & P2
+    ML --> P2
     P1 & P2 --> TOOLS
     TOOLS --> SES
     SES --> GUARD --> GATE --> PAY
     SES --> AUDIT
     PAY --> AUDIT
+    SES --> NOTIFY --> AUDIT
     SES --> UI["Demo UI (SSE)"]
     AUDIT --> UI
 ```
@@ -71,6 +75,7 @@ sequenceDiagram
     participant A as Agent planner
     participant G as MoneyGuard
     participant P as PaymentProvider
+    participant N as NotificationProvider
     participant T as AuditTrail
 
     U->>S: run(mission)
@@ -96,6 +101,9 @@ sequenceDiagram
             S->>P: retry (fallback method)
         end
         S->>T: audit PAYMENT_SUCCEEDED, ORDER_CONFIRMED
+        S->>N: sendReceipt(order)
+        S->>T: audit RECEIPT_EMAILED
+        S-->>U: event: receipt.sent
         S-->>U: event: payment.succeeded
     end
 ```
@@ -157,10 +165,12 @@ what gets bought.
 - **LLM planner** (`agent/planner.ts`): a tool-calling loop against any
   OpenAI-compatible `/chat/completions` endpoint. The system prompt encodes the
   money rules ("you only propose; a human approves; guard re-validates").
-- **Heuristic planner** (`agent/heuristic.ts`): a deterministic keyword→budget→
-  cart→propose pipeline. It exists so the demo **runs with zero API keys** and is
-  also a deliberate "where we chose NOT to use AI" moment (the money path is
-  policy-driven no matter which planner is on).
+- **Local ML planner** (`agent/localPlanner.ts`): a dependency-free subword-
+  embedding model (`src/ml/embedding.ts`) **trained on the catalog** — queries are
+  matched by vector cosine similarity (handles typos, inflections, compound
+  terms), then a budget-aware cart→propose pipeline. It exists so the demo
+  **runs with zero API keys** and is the automatic fallback when the cloud LLM
+  is down or rate-limited — a deliberate "right tool for the right job" story.
 - On LLM failure, the system **falls back** to the heuristic planner rather than
   crashing — and says so in the trace.
 
