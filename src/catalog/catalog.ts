@@ -41,20 +41,16 @@ export class CatalogService {
       .filter((t) => t.length > 0);
 
     const score = (p: Product): number => {
+      const name = p.name.toLowerCase();
+      const tags = p.tags.join(' ').toLowerCase();
+      const meta = `${p.brand} ${p.category} ${p.attributes.map((a) => `${a.key} ${a.value}`).join(' ')}`.toLowerCase();
+      const body = `${p.description} ${p.agentBlurb}`.toLowerCase();
       let s = 0;
-      const haystack = [
-        p.name,
-        p.brand,
-        p.category,
-        p.description,
-        p.agentBlurb,
-        ...p.tags,
-        ...p.attributes.map((a) => `${a.key} ${a.value}`),
-      ]
-        .join(' ')
-        .toLowerCase();
       for (const t of terms) {
-        if (haystack.includes(t)) s += t.length > 3 ? 2 : 1;
+        if (name.includes(t)) s += 3;
+        if (tags.includes(t)) s += 2;
+        if (meta.includes(t)) s += 2;
+        if (body.includes(t)) s += 1;
       }
       return s;
     };
