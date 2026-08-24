@@ -8,7 +8,8 @@ import {
   runLlmBuyer,
   type RunContext,
 } from '../agent/planner.js';
-import { runHeuristicBuyer } from '../agent/heuristic.js';
+import { runLocalBuyer } from '../agent/localPlanner.js';
+import { createNotificationProvider } from '../notify/index.js';
 
 export interface NewSessionInput {
   id?: string;
@@ -31,6 +32,7 @@ export class SessionManager {
       id: input.id,
       demoFailOnce: input.demoFailOnce ?? true,
       paymentMethods: input.paymentMethods,
+      notifications: createNotificationProvider(),
     });
     this.sessions.set(session.id, session);
     return session;
@@ -52,7 +54,7 @@ export class SessionManager {
         s.emitThinking(`[planner error] ${(e as Error).message}`);
       });
     } else {
-      void runHeuristicBuyer(s, mission).catch((e) => {
+      void runLocalBuyer(s, mission).catch((e) => {
         s.emitThinking(`[planner error] ${(e as Error).message}`);
       });
     }
@@ -69,8 +71,8 @@ export class SessionManager {
       void continueLlmBuyer(s, ctx, `The human denied your proposed order: "${reason}". Adjust the cart (drop items, swap products, or reduce quantity) and propose again.`).catch(() => {});
       return true;
     }
-    // Heuristic mode: no reasoning loop — just note it and re-propose the cart.
-    s.emitThinking('[heuristic planner] Human denied the order. Re-proposing the same cart (deterministic mode can’t adjust).');
+    // Offline mode: no reasoning loop — just note it and re-propose the cart.
+    s.emitThinking('[offline planner] Human denied the order. Re-proposing the same cart (local semantic mode can’t adjust).');
     s.proposeOrder('Re-proposed after denial (heuristic mode).');
     return true;
   }

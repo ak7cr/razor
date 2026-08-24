@@ -1,7 +1,7 @@
 import { config } from '../config.js';
 import { complete, LlmError, type ChatMessage } from './llm.js';
 import { dispatchTool, TOOL_DEFS } from './tools.js';
-import { runHeuristicBuyer } from './heuristic.js';
+import { runLocalBuyer } from './localPlanner.js';
 import type { BuyerSession } from './session.js';
 
 const SYSTEM_PROMPT = `You are Volt-Go, a capable AI shopping agent working for a customer at "Volt & Co.", an Indian electronics & workspace store.
@@ -62,11 +62,11 @@ export async function runLlmBuyer(session: BuyerSession, ctx: RunContext): Promi
       res = await complete({ cfg: config, messages: ctx.messages, tools: TOOL_DEFS });
     } catch (err) {
       const msg = err instanceof LlmError ? err.message : (err as Error).message;
-      session.emitThinking(`[LLM unavailable — ${msg}] Falling back to the deterministic heuristic buyer.`);
+      session.emitThinking(`[LLM unavailable — ${msg}] Falling back to the local semantic model (offline, no API key).`);
       session.audit.append('system', 'AGENT_DECISION', 'failed', {
-        reasoning: `LLM planner failed (${msg}); switched to heuristic planner.`,
+        reasoning: `LLM planner failed (${msg}); switched to the local semantic (embedding) planner.`,
       });
-      await runHeuristicBuyer(session, session.mission);
+      await runLocalBuyer(session, session.mission);
       return;
     }
 

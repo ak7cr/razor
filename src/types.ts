@@ -50,6 +50,7 @@ export type MoneyActionType =
   | 'PAYMENT_SUCCEEDED'
   | 'PAYMENT_FAILED'
   | 'ORDER_CONFIRMED'
+  | 'RECEIPT_EMAILED'
   | 'AGENT_DECISION'
   | 'GUARD_BLOCKED';
 
@@ -138,6 +139,7 @@ export type SessionEventType =
   | 'payment.link_created'
   | 'payment.succeeded'
   | 'payment.failed'
+  | 'receipt.sent'
   | 'guard.blocked'
   | 'audit.appended'
   | 'session.ended';

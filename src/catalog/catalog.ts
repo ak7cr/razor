@@ -1,5 +1,6 @@
 import { MERCHANT, PRODUCTS } from './products.js';
 import type { Product } from '../types.js';
+import { LocalRetriever, type Scored } from '../ml/embedding.js';
 
 /**
  * CatalogService — reads the merchant catalog and answers agent queries.
@@ -11,9 +12,11 @@ import type { Product } from '../types.js';
  */
 export class CatalogService {
   private readonly products: Product[];
+  private readonly retriever = new LocalRetriever();
 
   constructor(products: Product[] = PRODUCTS) {
     this.products = products;
+    this.retriever.fit(products);
   }
 
   all(): Product[] {
@@ -30,36 +33,16 @@ export class CatalogService {
   }
 
   /**
-   * Lightweight lexical search over name, tags, attributes and blurb.
-   * Good enough for the heuristic buyer and as a coarse filter for the LLM buyer.
+   * Semantic search over the catalog using the local embedding model.
+   * Ranks by vector cosine similarity (handles typos, inflections, compounds).
    */
+  searchScored(query: string, topK = 8): Scored[] {
+    return this.retriever.search(this.products, query, topK);
+  }
+
+  /** Ranked products — convenience wrapper for tools + the offline planner. */
   search(query: string): Product[] {
-    const q = query.toLowerCase();
-    const terms = q
-      .split(/[\s,]+/)
-      .map((t) => t.trim())
-      .filter((t) => t.length > 0);
-
-    const score = (p: Product): number => {
-      const name = p.name.toLowerCase();
-      const tags = p.tags.join(' ').toLowerCase();
-      const meta = `${p.brand} ${p.category} ${p.attributes.map((a) => `${a.key} ${a.value}`).join(' ')}`.toLowerCase();
-      const body = `${p.description} ${p.agentBlurb}`.toLowerCase();
-      let s = 0;
-      for (const t of terms) {
-        if (name.includes(t)) s += 3;
-        if (tags.includes(t)) s += 2;
-        if (meta.includes(t)) s += 2;
-        if (body.includes(t)) s += 1;
-      }
-      return s;
-    };
-
-    return this.products
-      .map((p) => ({ p, s: score(p) }))
-      .filter((x) => x.s > 0)
-      .sort((a, b) => b.s - a.s)
-      .map((x) => x.p);
+    return this.searchScored(query).map((s) => s.product);
   }
 
   merchantInfo() {

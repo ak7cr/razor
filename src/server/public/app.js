@@ -236,6 +236,10 @@ function handleEvent(e) {
       renderPayment(e.data?.payment, e.data?.order, true);
       setState('complete');
       break;
+    case 'receipt.sent':
+      addMsg('ok', `🧾 Receipt emailed to <b>${esc(e.data?.to)}</b> · <span class="mono">${esc(e.data?.messageId)}</span>`);
+      renderReceipt(e.data);
+      break;
     case 'payment.failed':
       addMsg('err', `💔 Payment failed (${esc(e.data?.method)}, attempt ${e.data?.attempt}): <b>${esc(e.data?.error)}</b>`);
       if (e.data?.attempt === 1) {
@@ -333,6 +337,20 @@ function renderPayment(payment, order, ok) {
     payment?.paymentLinkUrl ? `<div class="pay-id">link: <a href="${esc(payment.paymentLinkUrl)}" target="_blank">${esc(payment.paymentLinkUrl)}</a></div>` : '',
   ].filter(Boolean).join('');
   el.innerHTML = details;
+  area.appendChild(el);
+}
+
+function renderReceipt(data) {
+  const area = $('#order-area');
+  const el = document.createElement('div');
+  el.className = 'receipt-card';
+  const paid = data?.paid ? 'Paid' : 'Payment link created';
+  el.innerHTML = `
+    <div class="r-head">🧾 Receipt <span class="r-amt">${fmt(data?.totalPaise)}</span></div>
+    <div class="r-row"><span>Order</span><span class="mono">${esc(data?.orderId)}</span></div>
+    <div class="r-row"><span>Status</span><span>${paid}</span></div>
+    <div class="r-row"><span>Delivered to</span><span>${esc(data?.to)}</span></div>
+    <div class="r-row"><span>Message</span><span class="mono">${esc(data?.messageId)}</span></div>`;
   area.appendChild(el);
 }
 

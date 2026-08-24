@@ -15,6 +15,7 @@ import { formatInr } from '../catalog/serialize.js';
 import { config } from '../config.js';
 import type { PaymentProvider } from '../payments/index.js';
 import { PaymentDeclinedError } from '../payments/index.js';
+import { MockNotificationProvider, type NotificationProvider } from '../notify/index.js';
 import { formatCart, type BuyerSessionApi } from './tools.js';
 
 export type SessionState =
@@ -29,6 +30,7 @@ export interface SessionOptions {
   id?: string;
   demoFailOnce?: boolean;
   paymentMethods?: string[];
+  notifications?: NotificationProvider;
 }
 
 const DEFAULT_METHODS = ['UPI', 'Card', 'Netbanking'];
@@ -56,6 +58,7 @@ export class BuyerSession extends EventEmitter implements BuyerSessionApi {
   readonly guard: MoneyGuard;
   readonly payment: PaymentProvider;
   readonly demoFailOnce: boolean;
+  readonly notifications: NotificationProvider;
 
   cart: Cart = { lines: [], totalPaise: 0 };
   order: Order | null = null;
@@ -76,6 +79,7 @@ export class BuyerSession extends EventEmitter implements BuyerSessionApi {
     this.payment = payment;
     this.demoFailOnce = opts.demoFailOnce ?? true;
     this.paymentMethods = opts.paymentMethods ?? DEFAULT_METHODS;
+    this.notifications = opts.notifications ?? new MockNotificationProvider();
     this.guard = new MoneyGuard(config, catalog);
     this.audit = new AuditTrail(this.traceId);
   }
@@ -396,6 +400,7 @@ export class BuyerSession extends EventEmitter implements BuyerSessionApi {
           });
           this.emitEvent('payment.link_created', { order: this.order, payment: res, attempt });
         }
+        await this.sendReceipt();
         this.end('complete');
         return { ok: true, order: this.order };
       } catch (err) {
@@ -438,6 +443,46 @@ export class BuyerSession extends EventEmitter implements BuyerSessionApi {
     // Return to running so the agent can adjust (e.g., drop items / change picks).
     this.state = 'running';
     return { ok: true, message: 'Order denied. The agent can now adjust and re-propose.' };
+  }
+
+  /* ── receipt / notifications ────────────────────────────────────────── */
+
+  private async sendReceipt(): Promise<void> {
+    const o = this.order;
+    if (!o) return;
+    try {
+      const res = await this.notifications.sendReceipt({
+        orderId: o.id,
+        traceId: this.traceId,
+        buyerEmail: 'buyer@example.com',
+        lines: o.lines.map((l) => ({ name: l.name, qty: l.qty, unitPricePaise: l.unitPricePaise })),
+        totalPaise: o.totalPaise,
+        currency: 'INR',
+        paymentRef: o.payment?.paymentId,
+        provider: this.payment.provider,
+        paid: o.status === 'paid',
+      });
+      this.audit.append('system', 'RECEIPT_EMAILED', 'executed', {
+        reasoning: `Receipt for order ${o.id} emailed to the buyer.`,
+        amountPaise: o.totalPaise,
+        currency: 'INR',
+        itemIds: o.lines.map((l) => l.productId),
+        detail: `messageId=${res.messageId} to=buyer@example.com provider=${res.provider}`,
+      });
+      this.emitEvent('receipt.sent', {
+        orderId: o.id,
+        messageId: res.messageId,
+        to: 'buyer@example.com',
+        totalPaise: o.totalPaise,
+        paid: o.status === 'paid',
+        provider: res.provider,
+      });
+    } catch (err) {
+      this.audit.append('system', 'AGENT_DECISION', 'failed', {
+        reasoning: `Receipt email failed: ${(err as Error).message}`,
+      });
+      this.emitThinking(`[notify] Receipt email failed: ${(err as Error).message}`);
+    }
   }
 
   /* ── helpers ────────────────────────────────────────────────────────── */
