@@ -106,7 +106,13 @@ export interface Order {
   shippingPaise: number;
   totalPaise: number;
   currency: 'INR';
-  status: 'pending_approval' | 'approved' | 'paid' | 'denied' | 'failed';
+  status:
+    | 'pending_approval'
+    | 'approved'
+    | 'paid'
+    | 'payment_initiated'
+    | 'denied'
+    | 'failed';
   payment?: {
     provider: 'mock' | 'razorpay';
     paymentId?: string;
@@ -129,6 +135,7 @@ export type SessionEventType =
   | 'order.approved'
   | 'order.denied'
   | 'payment.initiated'
+  | 'payment.link_created'
   | 'payment.succeeded'
   | 'payment.failed'
   | 'guard.blocked'

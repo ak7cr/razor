@@ -87,6 +87,13 @@ function renderBadges() {
   $('#badge-payment').textContent = state.meta.hasRazorpay ? 'payments: Razorpay test API' : 'payments: mock';
   const g = state.meta.guardLimits;
   $('#badge-guard').textContent = `guard: ₹${g.maxOrderAmountInr.toLocaleString('en-IN')} cap · qty≤${g.maxQtyPerLine} · ${g.maxLineItems} lines`;
+  // The seeded-failure toggle only applies to the mock provider.
+  const toggle = $('#fail-toggle');
+  toggle.disabled = state.meta.hasRazorpay;
+  toggle.closest('.toggle').title = state.meta.hasRazorpay
+    ? 'Seeded-failure demo only applies to the mock provider (real Razorpay is active).'
+    : 'Makes the mock payment provider fail once, then recover — demonstrates graceful failure handling';
+  toggle.closest('.toggle').style.opacity = state.meta.hasRazorpay ? 0.5 : 1;
 }
 
 function renderChips() {
@@ -224,6 +231,11 @@ function handleEvent(e) {
       renderPayment(e.data?.payment, e.data?.order, true);
       setState('complete');
       break;
+    case 'payment.link_created':
+      addMsg('ok', `🔗 Payment link created via <b>${esc(e.data?.payment?.provider)}</b> — awaiting completion (webhook in production).`);
+      renderPayment(e.data?.payment, e.data?.order, true);
+      setState('complete');
+      break;
     case 'payment.failed':
       addMsg('err', `💔 Payment failed (${esc(e.data?.method)}, attempt ${e.data?.attempt}): <b>${esc(e.data?.error)}</b>`);
       if (e.data?.attempt === 1) {
@@ -308,8 +320,14 @@ function renderPayment(payment, order, ok) {
   const area = $('#order-area');
   const el = document.createElement('div');
   el.className = `payment-result ${ok ? 'ok' : 'err'}`;
+  const paid = ok && !!payment?.paidAt;
+  const headline = paid
+    ? `Paid ${fmt(order?.totalPaise)} via ${esc(payment?.provider)}`
+    : ok
+      ? `Payment link created — ${fmt(order?.totalPaise)} via ${esc(payment?.provider)}`
+      : `Payment failed (${esc(payment?.error)})`;
   const details = [
-    ok ? `Paid ${fmt(order?.totalPaise)} via ${esc(payment?.provider)}` : `Payment failed (${esc(payment?.error)})`,
+    headline,
     payment?.paymentId ? `<div class="pay-id">payment: ${esc(payment.paymentId)}</div>` : '',
     payment?.rzpOrderId ? `<div class="pay-id">razorpay order: ${esc(payment.rzpOrderId)}</div>` : '',
     payment?.paymentLinkUrl ? `<div class="pay-id">link: <a href="${esc(payment.paymentLinkUrl)}" target="_blank">${esc(payment.paymentLinkUrl)}</a></div>` : '',
@@ -348,8 +366,9 @@ function renderSnapshot(snap) {
     if (snap.order.status === 'pending_approval') {
       renderOrder(snap.order);
       setState('awaiting_approval');
-    } else if (snap.order.status === 'paid') {
+    } else if (snap.order.status === 'paid' || snap.order.status === 'payment_initiated') {
       state.order = snap.order;
+      if (snap.order.payment) renderPayment(snap.order.payment, snap.order, true);
       setState('complete');
     }
   }

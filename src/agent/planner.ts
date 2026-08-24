@@ -88,7 +88,12 @@ export async function runLlmBuyer(session: BuyerSession, ctx: RunContext): Promi
         } catch {
           /* malformed args — tool will report back */
         }
-        const reasoning = res.message.content ?? `${name}(${tc.function.arguments})`;
+        // Distinct reasoning per tool call so each audited action is specific.
+        const content = res.message.content;
+        const multi = res.message.tool_calls.length > 1;
+        const reasoning = content
+          ? (multi ? `${content} → ${name}(${tc.function.arguments})` : content)
+          : `${name}(${tc.function.arguments})`;
         let out: string;
         try {
           out = await dispatchTool(session, name, args, reasoning);

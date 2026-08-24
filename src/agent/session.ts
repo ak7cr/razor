@@ -366,21 +366,36 @@ export class BuyerSession extends EventEmitter implements BuyerSessionApi {
           paymentLinkUrl: res.paymentLinkUrl,
           paidAt: res.paidAt,
         };
-        this.order.status = 'paid';
-        this.audit.append('system', 'PAYMENT_SUCCEEDED', 'executed', {
-          reasoning: `Payment succeeded via ${method} (attempt ${attempt}).`,
-          amountPaise: this.order.totalPaise,
-          currency: 'INR',
-          guardChecks: recheck.checks,
-          detail: `paymentId=${res.paymentId} provider=${this.payment.provider}`,
-        });
-        this.emitEvent('payment.succeeded', { order: this.order, payment: res, attempt });
-        this.audit.append('system', 'ORDER_CONFIRMED', 'executed', {
-          reasoning: `Order ${this.order.id} confirmed and paid.`,
-          amountPaise: this.order.totalPaise,
-          currency: 'INR',
-          itemIds: this.order.lines.map((l) => l.productId),
-        });
+
+        if (res.paid) {
+          this.order.status = 'paid';
+          this.audit.append('system', 'PAYMENT_SUCCEEDED', 'executed', {
+            reasoning: `Payment succeeded via ${method} (attempt ${attempt}).`,
+            amountPaise: this.order.totalPaise,
+            currency: 'INR',
+            guardChecks: recheck.checks,
+            detail: `paymentId=${res.paymentId} provider=${this.payment.provider}`,
+          });
+          this.emitEvent('payment.succeeded', { order: this.order, payment: res, attempt });
+          this.audit.append('system', 'ORDER_CONFIRMED', 'executed', {
+            reasoning: `Order ${this.order.id} confirmed and paid.`,
+            amountPaise: this.order.totalPaise,
+            currency: 'INR',
+            itemIds: this.order.lines.map((l) => l.productId),
+          });
+        } else {
+          // Real Razorpay: the order + payment link were created; completion
+          // arrives via webhook in production. We must NOT claim it's paid.
+          this.order.status = 'payment_initiated';
+          this.audit.append('system', 'PAYMENT_INITIATED', 'executed', {
+            reasoning: `Payment link created via ${method} (attempt ${attempt}). Awaiting completion via webhook.`,
+            amountPaise: this.order.totalPaise,
+            currency: 'INR',
+            guardChecks: recheck.checks,
+            detail: `rzpOrderId=${res.rzpOrderId} paymentLinkUrl=${res.paymentLinkUrl}`,
+          });
+          this.emitEvent('payment.link_created', { order: this.order, payment: res, attempt });
+        }
         this.end('complete');
         return { ok: true, order: this.order };
       } catch (err) {
