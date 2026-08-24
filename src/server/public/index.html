@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Volt &amp; Co. · AI Buyer — Razorpay Buildathon Track 01</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">⚡</span>
+      <div>
+        <div class="brand-name">Volt &amp; Co.</div>
+        <div class="brand-sub">Agent-readable commerce · AI buyer checkout</div>
+      </div>
+    </div>
+    <div class="badges">
+      <span class="badge" id="badge-planner">planner: …</span>
+      <span class="badge" id="badge-payment">payments: …</span>
+      <span class="badge" id="badge-guard">guard: …</span>
+      <span class="badge badge-state" id="badge-state">idle</span>
+    </div>
+  </header>
+
+  <section class="missionbar">
+    <div class="mission-row">
+      <input id="mission-input" type="text" spellcheck="false"
+             placeholder="e.g. Buy me a mechanical keyboard under ₹5,000" />
+      <button id="run-btn" class="btn primary">▶ Run AI buyer</button>
+      <button id="reset-btn" class="btn ghost" title="Start a fresh session">↻ New session</button>
+      <label class="toggle" title="Makes the mock payment provider fail once, then recover — demonstrates graceful failure handling">
+        <input type="checkbox" id="fail-toggle" checked /> simulate 1 payment failure
+      </label>
+    </div>
+    <div class="chips" id="mission-chips"></div>
+  </section>
+
+  <main class="layout">
+    <section class="panel storefront">
+      <h2>Storefront <span class="muted">agent-readable catalog</span></h2>
+      <div class="product-grid" id="product-grid"></div>
+    </section>
+
+    <section class="panel console">
+      <div class="panel-head">
+        <h2>Agent console</h2>
+        <span class="muted mono" id="session-label"></span>
+      </div>
+      <div class="console-feed" id="console-feed">
+        <div class="empty-note">Press <b>Run AI buyer</b> to watch the agent shop.</div>
+      </div>
+    </section>
+
+    <section class="panel checkout">
+      <h2>Checkout <span class="muted">gated money actions</span></h2>
+      <div id="order-area">
+        <div class="empty-note">No order yet. Run the AI buyer to see a gated checkout.</div>
+      </div>
+
+      <div class="audit-head">
+        <h2>Audit trail</h2>
+        <span class="muted mono" id="audit-count"></span>
+        <a id="audit-download" class="link" href="#">⤓ jsonl</a>
+      </div>
+      <div class="audit-list" id="audit-list">
+        <div class="empty-note">Nothing yet — every money action will appear here with reasoning &amp; guard checks.</div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast-wrap" id="toasts"></div>
+  <script src="/app.js"></script>
+</body>
+</html>
