@@ -122,6 +122,7 @@ export interface Order {
 export type SessionEventType =
   | 'agent.thinking'
   | 'agent.tool_call'
+  | 'agent.tool_result'
   | 'agent.message'
   | 'cart.updated'
   | 'order.pending_approval'

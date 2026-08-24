@@ -14,7 +14,7 @@ export interface BuyerSessionApi {
   getProduct(id: string): string;
   viewPolicies(): string;
   addToCart(productId: string, qty: number, reasoning: string): string;
-  removeFromCart(productId: string, reasoning: string): string;
+  removeFromCart(productId: string, qty: number, reasoning: string): string;
   getCartView(): string;
   proposeOrder(reasoning: string): string;
   cart: Cart;

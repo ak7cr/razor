@@ -62,9 +62,7 @@ export async function runLlmBuyer(session: BuyerSession, ctx: RunContext): Promi
       res = await complete({ cfg: config, messages: ctx.messages, tools: TOOL_DEFS });
     } catch (err) {
       const msg = err instanceof LlmError ? err.message : (err as Error).message;
-      session.emitEvent('agent.thinking', {
-        text: `[LLM unavailable — ${msg}] Falling back to the deterministic heuristic buyer.`,
-      });
+      session.emitThinking(`[LLM unavailable — ${msg}] Falling back to the deterministic heuristic buyer.`);
       session.audit.append('system', 'AGENT_DECISION', 'failed', {
         reasoning: `LLM planner failed (${msg}); switched to heuristic planner.`,
       });
@@ -73,7 +71,7 @@ export async function runLlmBuyer(session: BuyerSession, ctx: RunContext): Promi
     }
 
     if (res.message.content) {
-      session.emitEvent('agent.message', { text: res.message.content });
+      session.emitMessage(res.message.content);
     }
 
     if (res.message.tool_calls && res.message.tool_calls.length > 0) {
@@ -97,10 +95,11 @@ export async function runLlmBuyer(session: BuyerSession, ctx: RunContext): Promi
         } catch (e) {
           out = `Tool error: ${(e as Error).message}`;
         }
+        session.emitToolResult(name, out);
         ctx.messages.push({ role: 'tool', tool_call_id: tc.id, content: out });
 
         if (name === 'propose_order') {
-          session.emitEvent('agent.thinking', { text: 'Order proposed — waiting for human approval.' });
+          session.emitThinking('Order proposed — waiting for human approval.');
           return;
         }
       }
@@ -110,17 +109,15 @@ export async function runLlmBuyer(session: BuyerSession, ctx: RunContext): Promi
     // No tool call → the agent chose to stop (or finished reasoning).
     if (res.finishReason === 'stop') {
       if (session.cart.lines.length > 0) {
-        session.emitEvent('agent.thinking', {
-          text: 'Agent finished without proposing. Proposing the current cart for approval.',
-        });
+        session.emitThinking('Agent finished without proposing. Proposing the current cart for approval.');
         session.proposeOrder('Agent completed its reasoning with a non-empty cart; proposing for approval.');
       } else {
-        session.emitEvent('agent.thinking', { text: 'Agent finished with an empty cart — nothing to buy.' });
+        session.emitThinking('Agent finished with an empty cart — nothing to buy.');
       }
       return;
     }
   }
-  session.emitEvent('agent.thinking', { text: `Reached max turns (${MAX_TURNS}) — stopping.` });
+  session.emitThinking(`Reached max turns (${MAX_TURNS}) — stopping.`);
 }
 
 /** Continue an existing run after a human denial, feeding the reason back. */

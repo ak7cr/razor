@@ -93,6 +93,21 @@ export class BuyerSession extends EventEmitter implements BuyerSessionApi {
     this.emit('event', e);
   }
 
+  /** Exposed so planners can surface a tool's output back into the live trace. */
+  emitToolResult(name: string, out: string): void {
+    this.emitEvent('agent.tool_result', { name, out });
+  }
+
+  /** Exposed for planners to inject narrative lines into the live trace. */
+  emitThinking(text: string): void {
+    this.emitEvent('agent.thinking', { text });
+  }
+
+  /** Exposed for planners to surface the agent's own words. */
+  emitMessage(text: string): void {
+    this.emitEvent('agent.message', { text });
+  }
+
   /* ── lifecycle ──────────────────────────────────────────────────────── */
 
   start(mission: string): void {
