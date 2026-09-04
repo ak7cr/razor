@@ -1,0 +1,32 @@
+# Render blueprint for the Volt & Co. AI Buyer demo
+# Deploy: Render dashboard -> New -> Blueprint -> connect this GitHub repo.
+# Or create a manual Web Service with the same build/start commands below.
+
+services:
+  - type: web
+    name: razor-ai-buyer
+    runtime: node
+    repo: https://github.com/ak7cr/razor
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: node dist/index.js
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      # Optional — skip all of these to run the offline demo
+      # (mock payments + local semantic AI buyer, no keys needed).
+      #
+      # LLM planner (any OpenAI-compatible provider):
+      # - key: LLM_API_KEY
+      #   sync: false
+      # - key: LLM_BASE_URL
+      #   value: https://api.openai.com/v1
+      # - key: LLM_MODEL
+      #   value: gpt-4o-mini
+      #
+      # Real Razorpay test mode:
+      # - key: RAZORPAY_KEY_ID
+      #   sync: false
+      # - key: RAZORPAY_KEY_SECRET
+      #   sync: false

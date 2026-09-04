@@ -91,6 +91,26 @@ MAX_LINE_ITEMS=10            # max line items
 
 ---
 
+## 🚀 Deploy (Render — free)
+
+This is a **persistent Node/Express server** (SSE streaming + in-memory sessions),
+so it needs a long-running host — not static hosting. `render.yaml` at the repo
+root makes this one-click:
+
+1. Push this repo to GitHub.
+2. Render → **New → Blueprint** → connect the repo. Done.
+
+Or create a **Web Service** manually with:
+- Build command: `npm install && npm run build`
+- Start command: `node dist/index.js`
+- Instance: **Free** · Node 22
+
+It deploys running the **built-in mock payments + local semantic AI buyer** with
+zero keys. To go live with the LLM agent or real Razorpay test mode, add the env
+vars above (LLM_* / RAZORPAY_*) in the Render dashboard.
+
+---
+
 ## 🎬 5-minute demo script (for the pitch video)
 
 1. **Show the storefront** and click a mission chip, e.g. *"Buy me a good
