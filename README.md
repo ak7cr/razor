@@ -1,4 +1,4 @@
-# ⚡ Volt & Co. — Agent-Readable Commerce (AI Buyer)
+# Volt & Co. — Agent-Readable Commerce (AI Buyer)
 
 **Razorpay Buildathon · Track 01 — AI Growth & Agentic Commerce**
 
@@ -11,7 +11,7 @@ failure handled gracefully.
 
 ---
 
-## 🎯 The pitch (2 minutes)
+## The pitch (2 minutes)
 
 Most commerce is built for human eyes. When an AI agent shows up to buy, it can't
 parse a marketing page, and nobody wants an agent that can silently charge money.
@@ -33,27 +33,27 @@ The demo also shows **graceful failure**: the first payment attempt fails
 honestly surfaced in the audit trail.
 
 **The bar (from the brief):** *Every money action explainable, bounded and
-gated. Show the audit trail and one failure handled gracefully.* → ✅ built in.
+gated. Show the audit trail and one failure handled gracefully.* → built in.
 
 ---
 
-## ✨ Features
+## Features
 
 | Area | What it does |
 |------|--------------|
-| 🏬 Agent-readable catalog | `GET /api/catalog/agent` (structured), `llms.txt`, `agent.json` manifest, JSON-LD product pages |
-| 🤖 AI buyer agent | Tool-calling LLM planner (OpenAI-compatible) **or** local **ML semantic model** (subword-embedding retrieval — zero API keys, offline, handles typos/inflections) |
-| 🛡 Money guards | Order total cap (₹25,000), per-line qty cap (5), line-item cap, positive amounts, price/stock snapshot re-validation at payment time |
-| 🚦 Human gate | The agent can only *propose*; every charge needs human **Approve / Deny**, with a **deny → agent adjusts → re-propose** loop |
-| 🧾 Audit trail | Append-only JSONL per session (`data/audit/`), downloadable; each entry carries reasoning + guard checks + amounts |
-| 💳 Payments | **Mock provider** (offline demo, seeded to fail once for the recovery demo) or **real Razorpay test-mode API** (Orders + Payment Links) |
-| 🧾 Receipt | Post-purchase receipt "emailed" via a mock provider — audited (`RECEIPT_EMAILED`) and rendered in the UI; a real SMTP adapter drops in behind the same interface |
-| 🖥 Demo UI | Live storefront + agent console (SSE stream) + gated checkout + audit panel |
-| 🔁 Resilient | One failed payment → automatic retry with fallback method, surfaced honestly |
+| Agent-readable catalog | `GET /api/catalog/agent` (structured), `llms.txt`, `agent.json` manifest, JSON-LD product pages |
+| AI buyer agent | Tool-calling LLM planner (OpenAI-compatible) **or** local **ML semantic model** (subword-embedding retrieval — zero API keys, offline, handles typos/inflections) |
+| Money guards | Order total cap (₹25,000), per-line qty cap (5), line-item cap, positive amounts, price/stock snapshot re-validation at payment time |
+| Human gate | The agent can only *propose*; every charge needs human **Approve / Deny**, with a **deny → agent adjusts → re-propose** loop |
+| Audit trail | Append-only JSONL per session (`data/audit/`), downloadable; each entry carries reasoning + guard checks + amounts |
+| Payments | **Mock provider** (offline demo, seeded to fail once for the recovery demo) or **real Razorpay test-mode API** (Orders + Payment Links) |
+| Receipt | Post-purchase receipt "emailed" via a mock provider — audited (`RECEIPT_EMAILED`) and rendered in the UI; a real SMTP adapter drops in behind the same interface |
+| Demo UI | Live storefront + agent console (SSE stream) + gated checkout + audit panel |
+| Resilient | One failed payment → automatic retry with fallback method, surfaced honestly |
 
 ---
 
-## 🚀 Quick start
+## Quick start
 
 ```bash
 npm install
@@ -91,7 +91,7 @@ MAX_LINE_ITEMS=10            # max line items
 
 ---
 
-## 🚀 Deploy (Render — free)
+## Deploy (Render — free)
 
 This is a **persistent Node/Express server** (SSE streaming + in-memory sessions),
 so it needs a long-running host — not static hosting. `render.yaml` at the repo
@@ -111,7 +111,7 @@ vars above (LLM_* / RAZORPAY_*) in the Render dashboard.
 
 ---
 
-## 🎬 5-minute demo script (for the pitch video)
+## 5-minute demo script (for the pitch video)
 
 1. **Show the storefront** and click a mission chip, e.g. *"Buy me a good
    mechanical keyboard under ₹5,000"* → **Run AI buyer**.
@@ -127,7 +127,7 @@ vars above (LLM_* / RAZORPAY_*) in the Render dashboard.
 
 ---
 
-## 🗺 Architecture
+## Architecture
 
 See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for diagrams and design
 decisions. Short version:
@@ -155,7 +155,7 @@ decisions. Short version:
 
 ---
 
-## 📚 API surface (agent-facing)
+## API surface (agent-facing)
 
 | Method | Path | Purpose |
 |--------|------|---------|
@@ -173,7 +173,7 @@ decisions. Short version:
 
 ---
 
-## 📁 Project structure
+## Project structure
 
 ```
 src/
@@ -190,7 +190,7 @@ src/
 
 ---
 
-## 🔒 Honest limitations
+## Honest limitations
 
 - **Offline planner** (no LLM key) uses a **local subword-embedding model** trained
   on the catalog — real vector semantics (typos, inflections, compound terms)
