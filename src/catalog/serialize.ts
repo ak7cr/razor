@@ -55,8 +55,9 @@ export function llmsTxt(products: Product[]): string {
   lines.push('This store is buyable by AI agents. To buy:');
   lines.push('1. GET /api/catalog/agent  → the structured product catalog.');
   lines.push('2. Choose product ids and quantities.');
-  lines.push('3. Call the merchant checkout (POST /api/orders) to create a payment.');
-  lines.push('4. Every charge is gated by human approval and logged to an audit trail.');
+  lines.push('3. Open a buyer session (POST /api/sessions), then run a mission (POST /api/sessions/:id/run).');
+  lines.push('4. The agent builds a cart and proposes an order; a human must approve before any charge is created.');
+  lines.push('5. Every charge is bounded by a money guard and logged to an audit trail (GET /api/sessions/:id/audit).');
   lines.push('');
   lines.push('## Products');
   for (const p of products) {
@@ -113,7 +114,10 @@ export function agentManifest(): Record<string, unknown> {
     endpoints: {
       catalog: { method: 'GET', path: '/api/catalog/agent', mediaType: 'application/json' },
       productPage: { method: 'GET', path: '/api/catalog/products/:id', mediaType: 'application/ld+json' },
-      createOrder: { method: 'POST', path: '/api/orders', note: 'Requires human approval; amount is bounded; audited.' },
+      createSession: { method: 'POST', path: '/api/sessions', note: 'Open a buyer session.' },
+      runMission: { method: 'POST', path: '/api/sessions/:id/run', note: 'Run the AI buyer for a mission.' },
+      approve: { method: 'POST', path: '/api/sessions/:id/approve', note: 'Human approval — gates the charge.' },
+      audit: { method: 'GET', path: '/api/sessions/:id/audit', mediaType: 'application/json' },
     },
     policies: MERCHANT.policies,
     buyingRules: [
